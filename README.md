@@ -1,5 +1,7 @@
 # Sales × Stock Replenishment Report — n8n + Bling ERP
 
+![CI](https://github.com/JohnNatan01/n8n-sales-stock-report/actions/workflows/ci.yml/badge.svg)
+
 An n8n automation, **running in production** for a retail group made of **three companies**, each with
 its own Bling ERP account, **sharing a single stock** held by one of them. Every week it pulls three
 months of sales from all three companies plus the current stock, normalises every commercial code

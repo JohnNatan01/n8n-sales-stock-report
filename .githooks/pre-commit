@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks commits that contain secrets or client data. Enable with:
+#   git config core.hooksPath .githooks
+exec node "$(git rev-parse --show-toplevel)/scripts/check-secrets.mjs"

@@ -1,0 +1,344 @@
+{
+  "name": "Weekly Report - 04 Consolidate Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b095b443-dfea-443e-8718-6492066038cc",
+      "name": "Report Schedule"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Base",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "baf28622-690c-4d49-8bef-a1f514239ab1",
+      "name": "Read Base",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "f18552f3-7ed6-4c44-a267-78a38667f1ea",
+      "name": "Read Stock",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store A",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "id": "d3d49394-a966-41f3-9380-8525397fb452",
+      "name": "Read Sales - Store A",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store B",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "id": "2ba3238f-7105-4a63-87ea-20c568620ebf",
+      "name": "Read Sales - Store B",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store C",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "42c8802f-0b1f-4b10-a561-7f21552580f7",
+      "name": "Read Sales - Store C",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * n8n Code Node\n * Modo: Run Once for All Items\n *\n * Nos esperados:\n * - Read Base\n * - Read Stock\n * - Read Sales - Store A\n * - Read Sales - Store B\n * - Read Sales - Store C\n *\n * Saida:\n * Cod Componente\n * Descricao\n * Qcx\n * Cx\n * Jg\n * Dec\n * Un\n * Comp\n * On\n * Total\n * Media M\n * Qtd Estoque Jg\n * Qtd Estoque CX_UN\n * Encontrado na Base\n * Total Estoque\n */\n\n// ======================================================\n// CONFIGURACOES\n// ======================================================\n\nconst PERIODOS_MEDIA = 3;\n\nconst USAR_QTDE_FATURADA = false;\n\nconst NOMES_NO_BASE = ['Read Base'];\nconst NOMES_NO_ESTOQUE = ['Read Stock'];\n\nconst NOS_VENDAS = [\n  ['Read Sales - Store A'],\n  ['Read Sales - Store B'],\n  ['Read Sales - Store C'],\n];\n\nconst PRIORIDADE_TIPO = {\n  Cx: 1,\n  Jg: 2,\n  Dec: 3,\n  Un: 4,\n  Comp: 5,\n};\n\n\n// ======================================================\n// FUNCOES GERAIS\n// ======================================================\n\nfunction removerAcentos(texto) {\n  return String(texto || '')\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '');\n}\n\nfunction normalizarNomeCampo(nome) {\n  return removerAcentos(nome)\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .toLowerCase();\n}\n\nfunction normalizarCodigo(valor) {\n  return removerAcentos(String(valor || ''))\n    .trim()\n    .toUpperCase();\n}\n\nfunction normalizarTexto(valor) {\n  return String(valor === null || valor === undefined ? '' : valor).trim();\n}\n\nfunction numero(valor, padrao = 0) {\n  if (valor === null || valor === undefined || valor === '') return padrao;\n\n  let texto = String(valor).trim();\n\n  if (!texto) return padrao;\n\n  if (texto.includes(',')) {\n    texto = texto.replace(/\\./g, '').replace(',', '.');\n  }\n\n  const n = Number(texto);\n  return Number.isFinite(n) ? n : padrao;\n}\n\nfunction arredondar(valor) {\n  const n = Number(valor || 0);\n  return Math.round((n + Number.EPSILON) * 1000000) / 1000000;\n}\n\nfunction mapaCampos(obj) {\n  const mapa = {};\n\n  for (const chave of Object.keys(obj || {})) {\n    mapa[normalizarNomeCampo(chave)] = chave;\n  }\n\n  return mapa;\n}\n\nfunction pegarCampo(obj, aliases) {\n  if (!obj) return '';\n\n  const mapa = mapaCampos(obj);\n\n  for (const alias of aliases) {\n    const chave = mapa[normalizarNomeCampo(alias)];\n\n    if (chave !== undefined) {\n      return normalizarTexto(obj[chave]);\n    }\n  }\n\n  return '';\n}\n\nfunction simplificarDescricao(texto) {\n  let desc = normalizarTexto(texto);\n\n  desc = desc\n    .replace(/\\([^)]*\\)/g, ' ')\n    .replace(/\\b\\d+\\s*(UN|UND|UNIDADE|UNIDADES|PC|PCS|PÇ|PÇS)\\b/gi, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  return desc || normalizarTexto(texto);\n}\n\nfunction lerNoComAlternativas(nomes) {\n  const erros = [];\n\n  for (const nome of nomes) {\n    try {\n      const itens = $(nome).all();\n\n      if (itens && itens.length) {\n        return itens.map(item => item.json || {});\n      }\n\n      erros.push(`No \"${nome}\" retornou vazio`);\n    } catch (error) {\n      erros.push(`No \"${nome}\" nao encontrado`);\n    }\n  }\n\n  throw new Error(`Nao consegui ler nenhum destes nos: ${nomes.join(', ')}. Detalhes: ${erros.join(' | ')}`);\n}\n\nfunction criarLinhaAgregada(codComponente, descricao, qcx, encontrado) {\n  return {\n    codComponente,\n    descricao: simplificarDescricao(descricao),\n    qcx: qcx || 1,\n    cx: 0,\n    jg: 0,\n    dec: 0,\n    un: 0,\n    comp: 0,\n    on: 0,\n    estoqueJg: 0,\n    estoque: 0,\n    encontradoNaBase: encontrado ? 'Sim' : 'Nao',\n  };\n}\n\nfunction chaveAgregado(codComponente) {\n  return normalizarCodigo(codComponente);\n}\n\n\n// ======================================================\n// LEITURA DOS NOS\n// ======================================================\n\nconst baseRows = lerNoComAlternativas(NOMES_NO_BASE);\nconst estoqueRows = lerNoComAlternativas(NOMES_NO_ESTOQUE);\n\nconst vendasRows = [];\n\nfor (const alternativas of NOS_VENDAS) {\n  const linhas = lerNoComAlternativas(alternativas);\n  vendasRows.push(...linhas);\n}\n\n\n// ======================================================\n// VALIDACOES MINIMAS\n// ======================================================\n\nif (!baseRows.length) {\n  throw new Error('Base vazia.');\n}\n\nif (!vendasRows.length) {\n  throw new Error('Nenhuma venda encontrada.');\n}\n\nif (!estoqueRows.length) {\n  throw new Error('Estoque vazio.');\n}\n\n\n// ======================================================\n// CRIACAO DO INDICE DA BASE\n// Cada codigo comercial aponta para um Cod Componente central\n// ======================================================\n\nconst indiceCodigos = new Map();\nconst infoComponente = new Map();\n\nfunction adicionarAoIndice(codigo, tipo, row, multiplicador) {\n  const cod = normalizarCodigo(codigo);\n  const codComponente = normalizarCodigo(pegarCampo(row, ['Cod Componente']));\n\n  if (!cod || !codComponente) return;\n\n  const descricao =\n    pegarCampo(row, ['Descricao']) ||\n    pegarCampo(row, ['Descricao do componente']);\n\n  const qtdCx = numero(pegarCampo(row, ['Qtd Cx', 'Qtde Cx']), 1) || 1;\n  const multiplicadorFinal = numero(multiplicador, 1) || 1;\n\n  if (!infoComponente.has(codComponente)) {\n    infoComponente.set(codComponente, {\n      codComponente,\n      descricao,\n      qcx: qtdCx,\n      encontrado: true,\n    });\n  } else {\n    const info = infoComponente.get(codComponente);\n\n    if (!info.descricao && descricao) info.descricao = descricao;\n    if ((!info.qcx || info.qcx === 1) && qtdCx) info.qcx = qtdCx;\n  }\n\n  if (!indiceCodigos.has(cod)) {\n    indiceCodigos.set(cod, []);\n  }\n\n  const lista = indiceCodigos.get(cod);\n\n  const existente = lista.find(item =>\n    item.tipo === tipo &&\n    item.codComponente === codComponente\n  );\n\n  if (existente) {\n    if (multiplicadorFinal > (existente.multiplicador || 1)) {\n      existente.multiplicador = multiplicadorFinal;\n    }\n\n    if (!existente.descricao && descricao) {\n      existente.descricao = descricao;\n    }\n\n    if ((!existente.qcx || existente.qcx === 1) && qtdCx) {\n      existente.qcx = qtdCx;\n    }\n\n    return;\n  }\n\n  lista.push({\n    codigo: cod,\n    tipo,\n    codComponente,\n    descricao,\n    multiplicador: multiplicadorFinal,\n    qcx: qtdCx,\n  });\n}\n\nfor (const row of baseRows) {\n  const codComponente = pegarCampo(row, ['Cod Componente']);\n  const codCx = pegarCampo(row, ['Cod Cx']);\n  const codJg = pegarCampo(row, ['Cod Jg']);\n  const codDec = pegarCampo(row, ['Cod Dec']);\n  const codComposicao = pegarCampo(row, ['Cod Composicao']);\n\n  const qtdCx = numero(pegarCampo(row, ['Qtd Cx', 'Qtde Cx']), 1) || 1;\n\n  const qtdJg = numero(\n    pegarCampo(row, [\n      'Qtd Jg',\n      'Qtde Jg',\n      'Qtd Jogo',\n      'Qtde Jogo',\n      'Quantidade Jg',\n      'Quantidade Jogo'\n    ]),\n    1\n  ) || 1;\n\n  const qtdComp = numero(\n    pegarCampo(row, [\n      'Qtd Comp',\n      'Qtde Comp',\n      'Qtd Componente',\n      'Qtde Componente',\n      'Quantidade do Componente'\n    ]),\n    1\n  ) || 1;\n\n  adicionarAoIndice(codComponente, 'Un', row, 1);\n  adicionarAoIndice(codCx, 'Cx', row, qtdCx);\n  adicionarAoIndice(codJg, 'Jg', row, qtdJg);\n  adicionarAoIndice(codDec, 'Dec', row, 1);\n  adicionarAoIndice(codComposicao, 'Comp', row, qtdComp);\n}\n\nfunction resolverCodigo(codigo) {\n  const cod = normalizarCodigo(codigo);\n\n  if (!cod) {\n    return {\n      encontrado: false,\n      tipo: 'Un',\n      codComponente: '',\n      descricao: '',\n      multiplicador: 1,\n      qcx: 1,\n    };\n  }\n\n  const opcoes = indiceCodigos.get(cod);\n\n  if (!opcoes || !opcoes.length) {\n    return {\n      encontrado: false,\n      tipo: 'Un',\n      codComponente: cod,\n      descricao: '',\n      multiplicador: 1,\n      qcx: 1,\n    };\n  }\n\n  const ordenadas = [...opcoes].sort((a, b) => {\n    const prioridadeA = PRIORIDADE_TIPO[a.tipo] || 99;\n    const prioridadeB = PRIORIDADE_TIPO[b.tipo] || 99;\n\n    if (prioridadeA !== prioridadeB) {\n      return prioridadeA - prioridadeB;\n    }\n\n    return (b.multiplicador || 1) - (a.multiplicador || 1);\n  });\n\n  const escolhido = ordenadas[0];\n\n  return {\n    encontrado: true,\n    tipo: escolhido.tipo,\n    codComponente: escolhido.codComponente,\n    descricao: escolhido.descricao,\n    multiplicador: escolhido.multiplicador || 1,\n    qcx: escolhido.qcx || 1,\n  };\n}\n\n\n// ======================================================\n// AGREGACAO\n// ======================================================\n\nconst agregados = new Map();\n\nfunction obterAgregado(resolvido, descricaoFallback = '') {\n  const codComponente = normalizarCodigo(resolvido.codComponente);\n\n  if (!codComponente) return null;\n\n  const chave = chaveAgregado(codComponente);\n\n  if (!agregados.has(chave)) {\n    const infoBase = infoComponente.get(codComponente);\n\n    const descricao =\n      (infoBase && infoBase.descricao) ||\n      resolvido.descricao ||\n      descricaoFallback ||\n      codComponente;\n\n    const qcx =\n      (infoBase && infoBase.qcx) ||\n      resolvido.qcx ||\n      1;\n\n    agregados.set(\n      chave,\n      criarLinhaAgregada(\n        codComponente,\n        descricao,\n        qcx,\n        resolvido.encontrado\n      )\n    );\n  } else {\n    const atual = agregados.get(chave);\n\n    if (resolvido.encontrado) {\n      atual.encontradoNaBase = 'Sim';\n    }\n\n    if ((!atual.descricao || atual.descricao === atual.codComponente) && descricaoFallback) {\n      atual.descricao = simplificarDescricao(descricaoFallback);\n    }\n\n    if ((!atual.qcx || atual.qcx === 1) && resolvido.qcx) {\n      atual.qcx = resolvido.qcx;\n    }\n  }\n\n  return agregados.get(chave);\n}\n\n\n// ======================================================\n// PROCESSAR VENDAS\n// ======================================================\n\nfor (const row of vendasRows) {\n  const codigoVenda = pegarCampo(row, ['Codigo']);\n  const descricaoVenda = pegarCampo(row, ['Descricao']);\n\n  const qtd = USAR_QTDE_FATURADA\n    ? numero(pegarCampo(row, ['Qtde faturada', 'Qtd faturada']), 0)\n    : numero(pegarCampo(row, ['Qtde', 'Qtd']), 0);\n\n  if (!codigoVenda || !qtd) continue;\n\n  const numeroLoja = pegarCampo(row, ['numeroLoja', 'Numero Loja', 'NumeroLoja']);\n  const vendaOnline = numeroLoja !== '';\n\n  const resolvido = resolverCodigo(codigoVenda);\n\n  if (!resolvido.descricao && descricaoVenda) {\n    resolvido.descricao = descricaoVenda;\n  }\n\n  const agregado = obterAgregado(resolvido, descricaoVenda);\n  if (!agregado) continue;\n\n  const qtdConvertida = qtd * (resolvido.multiplicador || 1);\n\n  if (resolvido.tipo === 'Cx') {\n    agregado.cx += qtdConvertida;\n  } else if (resolvido.tipo === 'Jg') {\n    agregado.jg += qtdConvertida;\n  } else if (resolvido.tipo === 'Dec') {\n    agregado.dec += qtdConvertida;\n  } else if (resolvido.tipo === 'Comp') {\n    agregado.comp += qtdConvertida;\n  } else {\n    agregado.un += qtdConvertida;\n  }\n\n  if (vendaOnline) {\n    agregado.on += qtdConvertida;\n  }\n}\n\n\n// ======================================================\n// PROCESSAR ESTOQUE\n// ======================================================\n\nfor (const row of estoqueRows) {\n  const codigoEstoque = pegarCampo(row, ['Codigo']);\n  const descricaoEstoque = pegarCampo(row, ['Descricao']);\n  const quantidade = numero(pegarCampo(row, ['Quantidade', 'Qtde', 'Qtd']), 0);\n\n  if (!codigoEstoque) continue;\n\n  const codigoEstoqueNormalizado = normalizarCodigo(codigoEstoque);\n\n  if (codigoEstoqueNormalizado.startsWith('VB')) {\n    continue;\n  }\n\n  const resolvido = resolverCodigo(codigoEstoque);\n\n  if (!resolvido.descricao && descricaoEstoque) {\n    resolvido.descricao = descricaoEstoque;\n  }\n\n  let multiplicadorEstoque = resolvido.multiplicador || 1;\n\n  const itensPorCaixaEstoque = numero(\n    pegarCampo(row, [\n      'itensPorCaixa',\n      'Itens por Caixa',\n      'ItensPorCaixa',\n      'Itens por caixa',\n      'Qtd por Caixa',\n      'Qtde por Caixa'\n    ]),\n    0\n  );\n\n  if (resolvido.tipo === 'Jg' && itensPorCaixaEstoque > multiplicadorEstoque) {\n    multiplicadorEstoque = itensPorCaixaEstoque;\n  }\n\n  if (!resolvido.encontrado) {\n    multiplicadorEstoque = itensPorCaixaEstoque || 1;\n  }\n\n  const agregado = obterAgregado(resolvido, descricaoEstoque);\n  if (!agregado) continue;\n\n  const estoqueConvertido = quantidade * multiplicadorEstoque;\n\n  if (resolvido.tipo === 'Jg') {\n    agregado.estoqueJg += estoqueConvertido;\n  }\n\n  agregado.estoque += estoqueConvertido;\n}\n\n\n// ======================================================\n// GERAR SAIDA\n// ======================================================\n\nconst saida = [...agregados.values()]\n  .sort((a, b) => {\n    return String(a.codComponente).localeCompare(String(b.codComponente), 'pt-BR', {\n      numeric: true,\n      sensitivity: 'base',\n    });\n  })\n  .map(item => {\n    const total = item.cx + item.jg + item.dec + item.un + item.comp;\n    const mediaM = Math.ceil(total / PERIODOS_MEDIA);\n\n    const qtdEstoqueJg = item.estoqueJg;\n    const totalEstoque = item.estoque;\n    const qtdEstoqueCxUn = totalEstoque - qtdEstoqueJg;\n\n   return {\n  json: {\n    'Cod Componente': item.codComponente,\n    'Descricao': item.descricao,\n    'Qcx': arredondar(item.qcx || 1),\n    'Cx': arredondar(item.cx),\n    'Jg': arredondar(item.jg),\n    'Dec': arredondar(item.dec),\n    'Un': arredondar(item.un),\n    'Comp': arredondar(item.comp),\n    'On': arredondar(item.on),\n    'Total': arredondar(total),\n    'Media M': mediaM,\n    'Qtd Estoque Jg': arredondar(qtdEstoqueJg),\n    'Qtd Estoque CX_UN': arredondar(qtdEstoqueCxUn),\n    'Total Estoque': arredondar(totalEstoque),\n    'Encontrado na Base': item.encontradoNaBase,\n  },\n};\n  });\n\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "0719e471-35e7-4307-acc0-d655a7f74a38",
+      "name": "Convert to Units & Aggregate"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Consolidated Report",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "21f3caf5-13c2-4690-9537-16e85fc6163d",
+      "name": "Write Consolidated Report",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Consolidate & convert to units\n**Runs:** Monday 07:00\n\nEvery sold and stocked code is resolved against the Base to its **component** and multiplied into units:\n\n| Type | Meaning | Multiplier |\n|---|---|---|\n| Cx | box | `Qtd Cx` |\n| Jg | set | `Qtd Jg` |\n| Comp | kit composition | `Qtd Comp` |\n| Dec | decorated variant | 1 |\n| Un | unit (or not in Base) | 1 |\n\n`On` = units sold through online channels (`numeroLoja` filled). `Media M` = monthly average over the 3-month window, rounded up.",
+        "height": 560,
+        "width": 720,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -600
+      ],
+      "id": "147b5dfe-591b-46d4-ab9b-7da681102fc3",
+      "name": "About"
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Portfolio copy - credentials not connected\nThis is a sanitized export of a workflow running in production.\nCredentials, spreadsheet IDs and e-mail addresses were intentionally removed\nor replaced with placeholders, so credential warnings on nodes are expected.\nSee the README for setup instructions.",
+        "height": 160,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -800
+      ],
+      "id": "b5519be4-906b-4eef-a124-40c6e1b4f182",
+      "name": "Portfolio Notice"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Report Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Base": {
+      "main": [
+        [
+          {
+            "node": "Read Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Stock": {
+      "main": [
+        [
+          {
+            "node": "Read Sales - Store A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sales - Store A": {
+      "main": [
+        [
+          {
+            "node": "Read Sales - Store B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sales - Store B": {
+      "main": [
+        [
+          {
+            "node": "Read Sales - Store C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sales - Store C": {
+      "main": [
+        [
+          {
+            "node": "Convert to Units & Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to Units & Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Write Consolidated Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

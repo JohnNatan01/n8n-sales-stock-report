@@ -1,0 +1,17 @@
+# Local-only list of client names / domains checked by scripts/check-secrets.mjs
+.secret-denylist
+
+# Raw n8n exports and real data never belong here - sanitize first
+*.original.json
+*_raw.json
+.env
+*.env
+exports/
+private/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/

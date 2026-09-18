@@ -1,0 +1,281 @@
+{
+  "name": "Weekly Report - 01 Clear Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "066e3a90-2844-47f0-acc0-603309367d87",
+      "name": "Clear Schedule"
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock",
+          "mode": "name"
+        },
+        "clear": "specificRows",
+        "startIndex": 2,
+        "rowsToDelete": 9999
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "877fea40-28c1-4985-a7b3-92174225f019",
+      "name": "Clear Stock",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store A",
+          "mode": "name"
+        },
+        "clear": "specificRows",
+        "startIndex": 2,
+        "rowsToDelete": 9999
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "b5d39e4b-5e2e-458e-bd8e-a5b123d875dc",
+      "name": "Clear Sales - Store A",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store B",
+          "mode": "name"
+        },
+        "clear": "specificRows",
+        "startIndex": 2,
+        "rowsToDelete": 9999
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "id": "1d38fab7-9180-48f4-a09a-65705f10eb4d",
+      "name": "Clear Sales - Store B",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store C",
+          "mode": "name"
+        },
+        "clear": "specificRows",
+        "startIndex": 2,
+        "rowsToDelete": 9999
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "id": "f6c9c922-44e9-42c9-8a4e-800d3a47714e",
+      "name": "Clear Sales - Store C",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Consolidated Report",
+          "mode": "name"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "343ba6e8-a316-41a3-afdc-3db766ec15bf",
+      "name": "Clear Consolidated Report",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## Reset working sheets\n**Runs:** Monday 01:00 (first step of the cycle)\n\nDeletes all data rows (keeps headers) from the stock and per-store sales tabs, and wipes the consolidated report so it is rebuilt from scratch.",
+        "height": 200,
+        "width": 600,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -240
+      ],
+      "id": "babfc813-bb85-4a57-a9ea-5ea66eb2db47",
+      "name": "About"
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Portfolio copy - credentials not connected\nThis is a sanitized export of a workflow running in production.\nCredentials, spreadsheet IDs and e-mail addresses were intentionally removed\nor replaced with placeholders, so credential warnings on nodes are expected.\nSee the README for setup instructions.",
+        "height": 160,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -440
+      ],
+      "id": "875d8c06-f09c-4eac-b371-2a2ff417e413",
+      "name": "Portfolio Notice"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Clear Schedule": {
+      "main": [
+        [
+          {
+            "node": "Clear Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Stock": {
+      "main": [
+        [
+          {
+            "node": "Clear Sales - Store A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Sales - Store A": {
+      "main": [
+        [
+          {
+            "node": "Clear Sales - Store B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Sales - Store B": {
+      "main": [
+        [
+          {
+            "node": "Clear Sales - Store C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Sales - Store C": {
+      "main": [
+        [
+          {
+            "node": "Clear Consolidated Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

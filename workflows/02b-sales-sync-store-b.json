@@ -1,0 +1,1017 @@
+{
+  "name": "Weekly Report - 02b Sales Sync (Store B)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e65c0cc4-9b13-47d7-8300-25905d49013d",
+      "name": "Token Refresh Schedule"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TOKEN_SPREADSHEET_ID_STORE_B",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tokens",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "28eb1fe0-9b36-4b36-979f-35ff10c583a9",
+      "name": "Read Refresh Token",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.bling.com.br/Api/v3/oauth/token",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "1.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "refresh_token",
+              "value": "={{ $json.refresh_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "78b91408-16ee-47e1-b422-99e2dc1b885e",
+      "name": "Bling - Refresh Access Token",
+      "credentials": {
+        "httpBasicAuth": {
+          "name": "Bling App - Store B"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TOKEN_SPREADSHEET_ID_STORE_B",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tokens",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "1",
+            "access_token": "={{ $json.access_token }}",
+            "refresh_token": "={{ $json.refresh_token }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "access_token",
+              "displayName": "access_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "refresh_token",
+              "displayName": "refresh_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        0
+      ],
+      "id": "166798be-310a-4ef9-8ae0-f45288e5130a",
+      "name": "Save New Tokens",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        520
+      ],
+      "id": "747a6daf-8774-4f4e-a366-c1fda2ea4ef5",
+      "name": "Sales Sync Schedule"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TOKEN_SPREADSHEET_ID_STORE_B",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tokens",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        520
+      ],
+      "id": "915d6772-7ac9-4eff-bef0-f00de9100e7f",
+      "name": "Read Access Token",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f07e1929-34c2-43c0-bda9-10a0fb9a9d53",
+              "name": "pagina",
+              "type": "number",
+              "value": "={{ $runIndex > 0 && $('Next Page').isExecuted ? $('Next Page').last().json.pagina : 1 }}"
+            },
+            {
+              "id": "3ac0df70-b1a8-46e5-af89-8bc32b6e7a64",
+              "name": "pageSize",
+              "type": "number",
+              "value": 100
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        520
+      ],
+      "id": "6bcb1fab-1789-494c-9aab-00b758293cdf",
+      "name": "Set Page"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bling.com.br/Api/v3/pedidos/vendas",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "dataInicial",
+              "value": "={{ $today.minus({ months: 3 }).toFormat('yyyy-MM-dd') }}"
+            },
+            {
+              "name": "dataFinal",
+              "value": "={{ $today.minus({ days: 1 }).toFormat('yyyy-MM-dd') }}"
+            },
+            {
+              "name": "idSituacao",
+              "value": "9"
+            },
+            {
+              "name": "pagina",
+              "value": "={{ $json.pagina }}"
+            },
+            {
+              "name": "limite",
+              "value": "={{ $json.pageSize }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Read Access Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        520
+      ],
+      "id": "66bb8e81-a2f3-427e-a3c9-52f47d0650ea",
+      "name": "Bling - List Sales Orders",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst lista = response.data || []; \nconst { pagina, pageSize } = $(\"Set Page\").first().json;\n\nlet results = [];\n\nif (Array.isArray(lista) && lista.length > 0) {\n  results = lista.map((venda) => ({\n    json: {\n      id: venda.id,\n      pagina: pagina,\n      hasMorePages: lista.length === pageSize,\n      totalItemsInPage: lista.length\n    }\n  }));\n} else {\n  results = [{ \n    json: { \n      id: null, \n      pagina: pagina, \n      hasMorePages: false, \n      totalItemsInPage: 0 \n    } \n  }];\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        520
+      ],
+      "id": "267c73d5-c4d5-4cd3-bcea-157c40c543b1",
+      "name": "Extract Order IDs"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "723d3dd8-ea64-4e16-93e5-8802c2db56b4",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        520
+      ],
+      "id": "5d9246f4-fa36-4739-9d19-3ff8ac210bc7",
+      "name": "Has Orders?"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        520
+      ],
+      "id": "9cb752b4-5296-4656-a5ff-e641334334e0",
+      "name": "Split Order IDs"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.bling.com.br/Api/v3/pedidos/vendas/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Read Access Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 400
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        520
+      ],
+      "id": "91f209a1-3a94-4247-a319-697380c64bbc",
+      "name": "Bling - Get Order Details",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.itens",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        520
+      ],
+      "id": "1e048df3-9ad0-4fdd-a6d5-0bc67c65cfd8",
+      "name": "Split Order Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entradas = $input.all();\nconst todasLinhas = [];\n\nfor (const entrada of entradas) {\n  const pedido = entrada.json.data;\n  const item = entrada.json[\"data.itens\"];\n\n  if (!pedido || !item || !item.codigo) continue;\n\n  const frete = pedido.transporte?.frete ?? 0;\n  const descontoPedido = pedido.desconto?.valor ?? 0;\n  const outrasDespesas = pedido.outrasDespesas ?? 0;\n  const totalItens = pedido.itens?.length ?? 1;\n\n  const valorTotalLinha = item.quantidade * item.valor;\n  const participacao = pedido.totalProdutos > 0\n    ? valorTotalLinha / pedido.totalProdutos\n    : 1 / totalItens;\n\n  todasLinhas.push({\n    json: {\n      \"Data\":            pedido.data,\n      \"ID Venda\":        pedido.id,\n      \"ID Item Venda\":   String(item.id),\n      \"numeroLoja\":      pedido.numeroLoja,\n      \"ID Produto\":      item.produto?.id,\n      \"Codigo\":          item.codigo,\n      \"Descricao\":       item.descricao,\n      \"Qtde\":            item.quantidade,\n      \"Qtde faturada\":   item.quantidade,\n      \"Preço Medio\":     item.valor,\n      \"Valor\":           +valorTotalLinha.toFixed(2),\n      \"Valor faturado\":  +valorTotalLinha.toFixed(2),\n      \"Frete\":           +(frete * participacao).toFixed(2),\n      \"Desconto\":        +(item.desconto + (descontoPedido * participacao)).toFixed(2),\n      \"Outras despesas\": +(outrasDespesas * participacao).toFixed(2),\n      \"Total Venda\":     +(valorTotalLinha + (frete * participacao) - (descontoPedido * participacao) + (outrasDespesas * participacao)).toFixed(2)\n    }\n  });\n}\n\nreturn todasLinhas;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        520
+      ],
+      "id": "d28cee36-1eeb-4a8f-8b0b-0159710b0e5e",
+      "name": "Build Sales Rows"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        520
+      ],
+      "id": "b3306fd2-6545-4e2b-b14b-bbf6d467682b",
+      "name": "Throttle Sheets Write",
+      "webhookId": "b192244c-e8dd-4f1f-9557-00eb099417e4"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sales Store B",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $json.Data }}",
+            "ID Venda": "={{ $json[\"ID Venda\"] }}",
+            "ID Item Venda": "={{ $json[\"ID Item Venda\"] }}",
+            "ID Produto": "={{ $json[\"ID Produto\"] }}",
+            "Codigo": "={{ $json.Codigo }}",
+            "Descricao": "={{ $json.Descricao }}",
+            "numeroLoja": "={{ $json.numeroLoja }}",
+            "Qtde": "={{ $json.Qtde }}",
+            "Qtde faturada": "={{ $json[\"Qtde faturada\"] }}",
+            "Preço Medio": "={{ $json[\"Preço Medio\"] }}",
+            "Valor": "={{ $json.Valor }}",
+            "Valor faturado": "={{ $json[\"Valor faturado\"] }}",
+            "Frete": "={{ $json.Frete }}",
+            "Desconto": "={{ $json.Desconto }}",
+            "Outras despesas": "={{ $json[\"Outras despesas\"] }}",
+            "Total Venda": "={{ $json[\"Total Venda\"] }}"
+          },
+          "matchingColumns": [
+            "ID Item Venda"
+          ],
+          "schema": [
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID Venda",
+              "displayName": "ID Venda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID Item Venda",
+              "displayName": "ID Item Venda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID Produto",
+              "displayName": "ID Produto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Codigo",
+              "displayName": "Codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Descricao",
+              "displayName": "Descricao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "numeroLoja",
+              "displayName": "numeroLoja",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qtde",
+              "displayName": "Qtde",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qtde faturada",
+              "displayName": "Qtde faturada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Preço Medio",
+              "displayName": "Preço Medio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Valor",
+              "displayName": "Valor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Valor faturado",
+              "displayName": "Valor faturado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Frete",
+              "displayName": "Frete",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Desconto",
+              "displayName": "Desconto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Outras despesas",
+              "displayName": "Outras despesas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total Venda",
+              "displayName": "Total Venda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2464,
+        520
+      ],
+      "id": "ae4ea27c-e046-46a4-8aa9-c922fb924089",
+      "name": "Upsert Sales Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        520
+      ],
+      "id": "e89d8fca-3fa4-475c-b79d-7686a4ad9997",
+      "name": "Throttle Next Page",
+      "webhookId": "073b1637-2b81-4351-816f-23ce66f71c1b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1",
+              "leftValue": "={{ $(\"Extract Order IDs\").first().json.hasMorePages }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2912,
+        520
+      ],
+      "id": "4443fde6-92b5-4091-8de6-e89abffd3883",
+      "name": "More Pages?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e0d0d93-0ff6-4a0f-9527-41a1a9454402",
+              "name": "pagina",
+              "type": "number",
+              "value": "={{ Number($(\"Extract Order IDs\").first().json.pagina) + 1 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2912,
+        760
+      ],
+      "id": "d71ae205-4160-430c-bbb9-b2fdfeed9f55",
+      "name": "Next Page",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## Sales sync - Store B\n**Runs:** Monday 02:00\n\nPulls **completed sales orders** (`idSituacao=9`) from the Bling ERP v3 API for the **last 3 months up to yesterday** and writes one row per order item.\n\nFreight, order discount and other expenses are **prorated per item** by its share of the order total.\n\nRows are **upserted on `ID Item Venda`**, so re-processing a page never duplicates data.",
+        "height": 270,
+        "width": 620,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        210
+      ],
+      "id": "191f4cfe-0558-4aca-9576-18a65b613b67",
+      "name": "About"
+    },
+    {
+      "parameters": {
+        "content": "### OAuth token rotation\n**Runs:** every 4 hours\n\nBling access tokens live 6 hours. This branch refreshes them every 4 hours and stores the pair in a `Tokens` sheet (`id`, `access_token`, `refresh_token`).\n\nClient ID and secret come from a **Basic Auth credential**, never hard-coded.",
+        "height": 230,
+        "width": 620,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -270
+      ],
+      "id": "765461ea-ebe6-4d55-a76b-c4cac036b4a2",
+      "name": "Token note"
+    },
+    {
+      "parameters": {
+        "content": "### Pagination loop\n100 orders per page. `Extract Order IDs` sets `hasMorePages` when the page is full, and `Next Page` feeds the counter back into `Set Page`.\n\nIf an order-detail call still fails after 5 retries (e.g. the token rotated mid-run), the error branch re-reads the token and resumes the current page.",
+        "height": 230,
+        "width": 600,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        250
+      ],
+      "id": "ea2f6f18-63f0-4ae7-977b-d2d0361b378a",
+      "name": "Pagination note"
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Portfolio copy - credentials not connected\nThis is a sanitized export of a workflow running in production.\nCredentials, spreadsheet IDs and e-mail addresses were intentionally removed\nor replaced with placeholders, so credential warnings on nodes are expected.\nSee the README for setup instructions.",
+        "height": 160,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -470
+      ],
+      "id": "cd24cb02-db69-4052-b7e0-17ec376b92fe",
+      "name": "Portfolio Notice"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Token Refresh Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Refresh Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Refresh Token": {
+      "main": [
+        [
+          {
+            "node": "Bling - Refresh Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bling - Refresh Access Token": {
+      "main": [
+        [
+          {
+            "node": "Save New Tokens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sales Sync Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Access Token": {
+      "main": [
+        [
+          {
+            "node": "Set Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Page": {
+      "main": [
+        [
+          {
+            "node": "Bling - List Sales Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bling - List Sales Orders": {
+      "main": [
+        [
+          {
+            "node": "Extract Order IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Order IDs": {
+      "main": [
+        [
+          {
+            "node": "Has Orders?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Orders?": {
+      "main": [
+        [
+          {
+            "node": "Split Order IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Order IDs": {
+      "main": [
+        [
+          {
+            "node": "Bling - Get Order Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bling - Get Order Details": {
+      "main": [
+        [
+          {
+            "node": "Split Order Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Order Items": {
+      "main": [
+        [
+          {
+            "node": "Build Sales Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sales Rows": {
+      "main": [
+        [
+          {
+            "node": "Throttle Sheets Write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle Sheets Write": {
+      "main": [
+        [
+          {
+            "node": "Upsert Sales Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Sales Rows": {
+      "main": [
+        [
+          {
+            "node": "Throttle Next Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle Next Page": {
+      "main": [
+        [
+          {
+            "node": "More Pages?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "More Pages?": {
+      "main": [
+        [
+          {
+            "node": "Next Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Page": {
+      "main": [
+        [
+          {
+            "node": "Set Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

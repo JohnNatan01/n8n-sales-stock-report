@@ -1,0 +1,211 @@
+{
+  "name": "Weekly Report - 00 Build Product Base",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fe137b88-a538-45ee-9519-b6dd536763c5",
+      "name": "Run Manually"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_PRODUCT_MASTER_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Composition Structure",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "cdf2fd96-1501-4332-884d-91895a331bda",
+      "name": "Read Composition Structure",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_PRODUCT_MASTER_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Supplier Base",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "719283e1-8365-4d86-8739-dd927f1c134f",
+      "name": "Read Supplier Base",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * n8n Code Node\n * Modo recomendado: Run Once for All Items\n *\n * Nos esperados no fluxo:\n * - Read Composition Structure\n * - Read Supplier Base\n *\n * Relacionamento:\n * SupplierBase[\"Cod Un\"] === CompositionStructure[\"Codigo do componente\"]\n *\n * Saida:\n * Cod Simp\n * Descricao\n * Cod Componente\n * Cod Cx\n * Cod Jg\n * Cod Dec\n * Cod Composicao\n * Qtd Cx\n * Qtd Jg\n * Qtd Comp\n */\n\n// ======================================================\n// CONFIGURACOES\n// ======================================================\n\nconst NOME_NO_BASE = 'Read Supplier Base';\nconst NOME_NO_ESTRUTURA = 'Read Composition Structure';\n\nconst INCLUIR_BASE_SEM_ESTRUTURA = true;\nconst IGNORAR_BASE_SEM_COD_UN = true;\n\n\n// ======================================================\n// FUNCOES UTILITARIAS\n// ======================================================\n\nfunction normalizarValor(valor) {\n  if (valor === null || valor === undefined) return '';\n  return String(valor).trim();\n}\n\nfunction removerAcentos(texto) {\n  return String(texto || '')\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '');\n}\n\nfunction normalizarChave(valor) {\n  return removerAcentos(normalizarValor(valor)).toUpperCase();\n}\n\nfunction normalizarNomeCampo(nome) {\n  return removerAcentos(nome)\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .toLowerCase();\n}\n\nfunction criarMapaCampos(obj) {\n  const mapa = {};\n\n  for (const chaveOriginal of Object.keys(obj || {})) {\n    const chaveNormalizada = normalizarNomeCampo(chaveOriginal);\n    mapa[chaveNormalizada] = chaveOriginal;\n  }\n\n  return mapa;\n}\n\nfunction pegarCampo(obj, nomesPossiveis) {\n  if (!obj) return '';\n\n  const mapa = criarMapaCampos(obj);\n\n  for (const nome of nomesPossiveis) {\n    const nomeNormalizado = normalizarNomeCampo(nome);\n    const chaveReal = mapa[nomeNormalizado];\n\n    if (chaveReal !== undefined) {\n      return normalizarValor(obj[chaveReal]);\n    }\n  }\n\n  return '';\n}\n\nfunction criarLinhaSaida(baseRow, estruturaRow, codComponenteFallback = '') {\n  const codComponente =\n    pegarCampo(baseRow, ['Cod Un']) ||\n    pegarCampo(estruturaRow, ['Codigo do componente', 'Código do componente']) ||\n    codComponenteFallback;\n\n  return {\n    json: {\n      'Cod Simp': pegarCampo(baseRow, ['Cod Simp']),\n      'Descricao':\n        pegarCampo(baseRow, ['Descricao', 'Descrição']) ||\n        pegarCampo(estruturaRow, ['Descricao do componente', 'Descrição do componente']),\n\n      'Cod Componente': codComponente,\n\n      'Cod Cx': pegarCampo(baseRow, ['Cod Cx']),\n      'Cod Jg': pegarCampo(baseRow, ['Cod Jg']),\n      'Cod Dec': pegarCampo(baseRow, ['Cod Dec']),\n\n      'Cod Composicao': pegarCampo(estruturaRow, [\n        'Codigo da composicao',\n        'Código da composição'\n      ]),\n\n      'Qtd Cx': pegarCampo(baseRow, ['Qtde Cx', 'Qtd Cx']),\n      'Qtd Jg': pegarCampo(baseRow, ['Qtde Jg', 'Qtd Jg']),\n\n      'Qtd Comp': pegarCampo(estruturaRow, [\n        'Quantidade do Componente',\n        'Qtd Componente',\n        'Qtde Componente'\n      ]),\n    },\n  };\n}\n\nfunction validarCampoExiste(rows, aliases) {\n  if (!rows.length) return false;\n\n  for (const row of rows) {\n    for (const alias of aliases) {\n      const valor = pegarCampo(row, [alias]);\n\n      if (valor !== '') {\n        return true;\n      }\n    }\n  }\n\n  const primeiraLinha = rows[0] || {};\n  const mapa = criarMapaCampos(primeiraLinha);\n\n  for (const alias of aliases) {\n    if (mapa[normalizarNomeCampo(alias)] !== undefined) {\n      return true;\n    }\n  }\n\n  return false;\n}\n\n\n// ======================================================\n// LEITURA DOS NOS PELO NOME\n// ======================================================\n\nlet baseItems = [];\nlet estruturaItems = [];\n\ntry {\n  baseItems = $(NOME_NO_BASE).all();\n} catch (error) {\n  throw new Error(\n    `Nao consegui ler o no \"${NOME_NO_BASE}\". Confira se o nome do no esta exatamente como: ${NOME_NO_BASE}`\n  );\n}\n\ntry {\n  estruturaItems = $(NOME_NO_ESTRUTURA).all();\n} catch (error) {\n  throw new Error(\n    `Nao consegui ler o no \"${NOME_NO_ESTRUTURA}\". Confira se o nome do no esta exatamente como: ${NOME_NO_ESTRUTURA}`\n  );\n}\n\nconst baseRows = baseItems.map(item => item.json || {});\nconst estruturaRows = estruturaItems.map(item => item.json || {});\n\nif (!baseRows.length) {\n  throw new Error(`O no \"${NOME_NO_BASE}\" nao retornou linhas.`);\n}\n\nif (!estruturaRows.length) {\n  throw new Error(`O no \"${NOME_NO_ESTRUTURA}\" nao retornou linhas.`);\n}\n\n\n// ======================================================\n// VALIDACAO FLEXIVEL DOS CAMPOS PRINCIPAIS\n// ======================================================\n\nconst validacoesBase = [\n  ['Cod Simp'],\n  ['Cod Un'],\n  ['Cod Cx'],\n  ['Cod Dec'],\n  ['Cod Jg'],\n  ['Descricao', 'Descrição'],\n  ['Qtde Cx', 'Qtd Cx'],\n  ['Qtde Jg', 'Qtd Jg'],\n];\n\nconst validacoesEstrutura = [\n  ['Codigo da composicao', 'Código da composição'],\n  ['Codigo do componente', 'Código do componente'],\n  ['Quantidade do Componente', 'Qtd Componente', 'Qtde Componente'],\n];\n\nconst camposBaseAusentes = validacoesBase\n  .filter(aliases => !validarCampoExiste(baseRows, aliases))\n  .map(aliases => aliases.map(removerAcentos).join(' / '));\n\nconst camposEstruturaAusentes = validacoesEstrutura\n  .filter(aliases => !validarCampoExiste(estruturaRows, aliases))\n  .map(aliases => aliases.map(removerAcentos).join(' / '));\n\nif (camposBaseAusentes.length) {\n  throw new Error(\n    `Campos ausentes na ${NOME_NO_BASE}: ${camposBaseAusentes.join(', ')}`\n  );\n}\n\nif (camposEstruturaAusentes.length) {\n  throw new Error(\n    `Campos ausentes na ${NOME_NO_ESTRUTURA}: ${camposEstruturaAusentes.join(', ')}`\n  );\n}\n\n\n// ======================================================\n// INDICE RELACIONAL DA BASE\n// Chave: Cod Un\n// ======================================================\n\nconst basePorCodUn = new Map();\nconst codigosBaseUsados = new Set();\n\nconst diagnostico = {\n  totalBase: baseRows.length,\n  totalEstrutura: estruturaRows.length,\n  baseSemCodUn: 0,\n  estruturaSemCodigoComponente: 0,\n  codigosBaseDuplicados: [],\n  codigosEstruturaSemBase: new Set(),\n  codigosBaseSemEstrutura: new Set(),\n};\n\nfor (const row of baseRows) {\n  const codUn = normalizarChave(pegarCampo(row, ['Cod Un']));\n\n  if (!codUn) {\n    diagnostico.baseSemCodUn++;\n\n    if (IGNORAR_BASE_SEM_COD_UN) {\n      continue;\n    }\n  }\n\n  if (!basePorCodUn.has(codUn)) {\n    basePorCodUn.set(codUn, []);\n  }\n\n  basePorCodUn.get(codUn).push(row);\n}\n\nfor (const [codUn, rows] of basePorCodUn.entries()) {\n  if (codUn && rows.length > 1) {\n    diagnostico.codigosBaseDuplicados.push({\n      codigo: codUn,\n      quantidade: rows.length,\n    });\n  }\n}\n\n\n// ======================================================\n// GERACAO DA SAIDA\n// Base principal: Estrutura\n// ======================================================\n\nconst saida = [];\n\nfor (const estruturaRow of estruturaRows) {\n  const codComponente = normalizarChave(\n    pegarCampo(estruturaRow, ['Codigo do componente', 'Código do componente'])\n  );\n\n  if (!codComponente) {\n    diagnostico.estruturaSemCodigoComponente++;\n    saida.push(criarLinhaSaida(null, estruturaRow));\n    continue;\n  }\n\n  const basesRelacionadas = basePorCodUn.get(codComponente);\n\n  if (!basesRelacionadas || !basesRelacionadas.length) {\n    diagnostico.codigosEstruturaSemBase.add(codComponente);\n    saida.push(criarLinhaSaida(null, estruturaRow, codComponente));\n    continue;\n  }\n\n  codigosBaseUsados.add(codComponente);\n\n  for (const baseRow of basesRelacionadas) {\n    saida.push(criarLinhaSaida(baseRow, estruturaRow, codComponente));\n  }\n}\n\n\n// ======================================================\n// INCLUIR BASE SEM ESTRUTURA\n// ======================================================\n\nif (INCLUIR_BASE_SEM_ESTRUTURA) {\n  for (const [codUn, rows] of basePorCodUn.entries()) {\n    if (!codUn) continue;\n\n    if (!codigosBaseUsados.has(codUn)) {\n      diagnostico.codigosBaseSemEstrutura.add(codUn);\n\n      for (const baseRow of rows) {\n        saida.push(criarLinhaSaida(baseRow, null, codUn));\n      }\n    }\n  }\n}\n\n\n// ======================================================\n// DIAGNOSTICO NO PRIMEIRO ITEM\n// ======================================================\n\nif (saida.length > 0) {\n  saida[0].json._diagnostico = {\n    totalBaseRecebido: diagnostico.totalBase,\n    totalEstruturaRecebido: diagnostico.totalEstrutura,\n    baseSemCodUnIgnorada: diagnostico.baseSemCodUn,\n    estruturaSemCodigoComponente: diagnostico.estruturaSemCodigoComponente,\n    totalLinhasGeradas: saida.length,\n    totalCodigosEstruturaSemBase: diagnostico.codigosEstruturaSemBase.size,\n    totalCodigosBaseSemEstrutura: diagnostico.codigosBaseSemEstrutura.size,\n    codigosBaseDuplicados: diagnostico.codigosBaseDuplicados,\n  };\n}\n\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "5a679c1c-b047-4bfe-82b3-00c4023145e2",
+      "name": "Join Base + Structure"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_PRODUCT_BASE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Base",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        0
+      ],
+      "id": "00d9753c-20f7-4a90-bd61-39de79eb9523",
+      "name": "Write Product Base",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Product base (relational model)\n**Runs:** manually, whenever the catalogue changes\n\nJoins the **supplier product sheet** (unit / box / set / decorated codes) with the **composition structure** (kit → component + quantity) on `Cod Un = Codigo do componente`.\n\nOutput: one row per component with every commercial code that maps to it and its multiplier (`Qtd Cx`, `Qtd Jg`, `Qtd Comp`). The first row carries a `_diagnostico` summary.",
+        "height": 290,
+        "width": 660,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -330
+      ],
+      "id": "9e79c18c-674f-41b1-af0b-742e9ec12429",
+      "name": "About"
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Portfolio copy - credentials not connected\nThis is a sanitized export of a workflow running in production.\nCredentials, spreadsheet IDs and e-mail addresses were intentionally removed\nor replaced with placeholders, so credential warnings on nodes are expected.\nSee the README for setup instructions.",
+        "height": 160,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -530
+      ],
+      "id": "1659469f-3545-4b50-9c7f-28c18c17cd54",
+      "name": "Portfolio Notice"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run Manually": {
+      "main": [
+        [
+          {
+            "node": "Read Composition Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Composition Structure": {
+      "main": [
+        [
+          {
+            "node": "Read Supplier Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Supplier Base": {
+      "main": [
+        [
+          {
+            "node": "Join Base + Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Base + Structure": {
+      "main": [
+        [
+          {
+            "node": "Write Product Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

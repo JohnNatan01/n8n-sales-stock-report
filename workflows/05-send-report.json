@@ -1,0 +1,173 @@
+{
+  "name": "Weekly Report - 05 Send Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bc72e798-d420-4022-98df-aaef3d84522d",
+      "name": "Send Schedule"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Consolidated Report",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "05913254-8fe8-4e23-a46b-675fd8769053",
+      "name": "Read Consolidated Report",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function texto(valor) {\n  if (valor === null || valor === undefined) return '';\n  return String(valor).trim();\n}\n\nfunction limparQuebras(valor) {\n  return texto(valor)\n    .replace(/\\r?\\n|\\r/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction escaparCSV(valor) {\n  const valorTexto = limparQuebras(valor);\n\n  // Escapa aspas duplas\n  const valorEscapado = valorTexto.replace(/\"/g, '\"\"');\n\n  // Sempre coloca entre aspas para evitar problemas com separador, acentos e quebras\n  return `\"${valorEscapado}\"`;\n}\n\nfunction doisDigitos(numero) {\n  return String(numero).padStart(2, '0');\n}\n\nfunction dataHojeE3MesesAtrasBrasilia() {\n  const partes = new Intl.DateTimeFormat('pt-BR', {\n    timeZone: 'America/Sao_Paulo',\n    day: '2-digit',\n    month: '2-digit',\n    year: 'numeric'\n  }).formatToParts(new Date());\n\n  const mapa = {};\n\n  for (const parte of partes) {\n    mapa[parte.type] = parte.value;\n  }\n\n  const hoje = {\n    dia: Number(mapa.day),\n    mes: Number(mapa.month),\n    ano: Number(mapa.year)\n  };\n\n  function ultimoDiaDoMes(ano, mes) {\n    // mes aqui vai de 1 a 12\n    return new Date(ano, mes, 0).getDate();\n  }\n\n  let mesInicial = hoje.mes - 3;\n  let anoInicial = hoje.ano;\n\n  if (mesInicial <= 0) {\n    mesInicial += 12;\n    anoInicial -= 1;\n  }\n\n  const ultimoDiaInicial = ultimoDiaDoMes(anoInicial, mesInicial);\n  const diaInicial = Math.min(hoje.dia, ultimoDiaInicial);\n\n  return {\n    inicio: {\n      dia: doisDigitos(diaInicial),\n      mes: doisDigitos(mesInicial),\n      ano: String(anoInicial)\n    },\n    fim: {\n      dia: doisDigitos(hoje.dia),\n      mes: doisDigitos(hoje.mes),\n      ano: String(hoje.ano)\n    }\n  };\n}\n\n// ================================\n// CONFIGURAÇÕES\n// ================================\n\n// Separador ideal para abrir no Excel em português brasileiro\nconst SEPARADOR = ';';\n\nconst periodo = dataHojeE3MesesAtrasBrasilia();\n\nconst nomeArquivo =\n  `relatorio_consolidado_${periodo.inicio.dia}.${periodo.inicio.mes}_${periodo.fim.dia}.${periodo.fim.mes}.${periodo.fim.ano}.csv`;\n\n// Se quiser forçar ordem específica de colunas, preencha aqui (ex.: 'Cod Componente', 'Descricao', ...).\n// Se deixar vazio, o código pega automaticamente todas as colunas encontradas.\nconst COLUNAS_FIXAS = [];\n\n// ================================\n// LER TODOS OS ITENS DE ENTRADA\n// ================================\n\nconst linhas = $input.all().map(item => item.json);\n\n// ================================\n// SE NÃO HOUVER LINHAS\n// ================================\n\nif (linhas.length === 0) {\n  const csvVazio = '\\uFEFFNenhum dado encontrado';\n\n  return [\n    {\n      json: {\n        arquivo: nomeArquivo,\n        total_linhas: 0,\n        mensagem: 'CSV gerado sem dados.',\n        periodo_inicio: `${periodo.inicio.dia}/${periodo.inicio.mes}/${periodo.inicio.ano}`,\n        periodo_fim: `${periodo.fim.dia}/${periodo.fim.mes}/${periodo.fim.ano}`\n      },\n      binary: {\n        data: {\n          data: Buffer.from(csvVazio, 'utf8').toString('base64'),\n          mimeType: 'text/csv',\n          fileName: nomeArquivo,\n          fileExtension: 'csv'\n        }\n      }\n    }\n  ];\n}\n\n// ================================\n// DEFINIR COLUNAS\n// ================================\n\nlet colunas = [];\n\nif (COLUNAS_FIXAS.length > 0) {\n  colunas = COLUNAS_FIXAS;\n} else {\n  const conjuntoColunas = new Set();\n\n  for (const linha of linhas) {\n    for (const chave of Object.keys(linha)) {\n      conjuntoColunas.add(chave);\n    }\n  }\n\n  colunas = Array.from(conjuntoColunas);\n}\n\n// ================================\n// MONTAR CSV\n// ================================\n\nconst cabecalho = colunas\n  .map(coluna => escaparCSV(coluna))\n  .join(SEPARADOR);\n\nconst corpo = linhas.map(linha => {\n  return colunas\n    .map(coluna => escaparCSV(linha[coluna]))\n    .join(SEPARADOR);\n}).join('\\n');\n\n// BOM no começo ajuda o Excel a reconhecer acentos corretamente\nconst csv = '\\uFEFF' + cabecalho + '\\n' + corpo;\n\n// ================================\n// RETORNAR ARQUIVO BINÁRIO PARA EMAIL\n// ================================\n\nreturn [\n  {\n    json: {\n      arquivo: nomeArquivo,\n      total_linhas: linhas.length,\n      total_colunas: colunas.length,\n      periodo_inicio: `${periodo.inicio.dia}/${periodo.inicio.mes}/${periodo.inicio.ano}`,\n      periodo_fim: `${periodo.fim.dia}/${periodo.fim.mes}/${periodo.fim.ano}`,\n      mensagem: `CSV gerado com ${linhas.length} linha(s).`\n    },\n    binary: {\n      data: {\n        data: Buffer.from(csv, 'utf8').toString('base64'),\n        mimeType: 'text/csv',\n        fileName: nomeArquivo,\n        fileExtension: 'csv'\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "38823153-57ee-4bfd-84c3-7a7653962367",
+      "name": "Build CSV"
+    },
+    {
+      "parameters": {
+        "sendTo": "recipient-1@example.com, recipient-2@example.com",
+        "subject": "Relatório consolidado - vendas x estoque",
+        "emailType": "text",
+        "message": "Segue relatório consolidado de hoje.",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "e3d8cb7b-3aec-4ad0-a033-4c5df63e505b",
+      "name": "Email Report",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      },
+      "executeOnce": true,
+      "webhookId": "5971cb86-fac6-4bb2-9e97-1ca0d13eac5c"
+    },
+    {
+      "parameters": {
+        "content": "## Send report\n**Runs:** Monday 08:00 (last step of the cycle)\n\nReads the consolidated tab, builds an Excel-friendly CSV (`;` separator, UTF-8 BOM, every value quoted) named after the 3-month window, and e-mails it.",
+        "height": 200,
+        "width": 560,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -240
+      ],
+      "id": "42d1b798-4979-4aac-9c3d-f1a8d47da780",
+      "name": "About"
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Portfolio copy - credentials not connected\nThis is a sanitized export of a workflow running in production.\nCredentials, spreadsheet IDs and e-mail addresses were intentionally removed\nor replaced with placeholders, so credential warnings on nodes are expected.\nSee the README for setup instructions.",
+        "height": 160,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -440
+      ],
+      "id": "1baf53f5-769c-4892-9703-dd9d3ce8c801",
+      "name": "Portfolio Notice"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Consolidated Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Consolidated Report": {
+      "main": [
+        [
+          {
+            "node": "Build CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build CSV": {
+      "main": [
+        [
+          {
+            "node": "Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

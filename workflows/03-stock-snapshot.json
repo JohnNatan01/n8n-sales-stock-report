@@ -1,0 +1,587 @@
+{
+  "name": "Weekly Report - 03 Stock Snapshot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 4
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        200
+      ],
+      "id": "bc5a609a-71d2-42fe-90ef-19bc608ef651",
+      "name": "Stock Sync Schedule"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TOKEN_SPREADSHEET_ID_STORE_A",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tokens",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        200
+      ],
+      "id": "d7ed0555-9d12-458f-9a40-d653974ba06d",
+      "name": "Read Access Token",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "76a49613-7ce7-434c-a3b4-db1ee10ca6fa",
+              "name": "pagina",
+              "type": "number",
+              "value": "={{ $runIndex > 0 && $('Next Page').isExecuted ? $('Next Page').last().json.pagina : 1 }}"
+            },
+            {
+              "id": "bdbcf02c-329b-4fa8-b65a-6ec6646c59ce",
+              "name": "pageSize",
+              "type": "number",
+              "value": 100
+            },
+            {
+              "id": "f09592df-f0cb-40f4-a06b-58bf8fa39099",
+              "name": "maxPages",
+              "type": "number",
+              "value": 99999
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        200
+      ],
+      "id": "b39d97f0-ba93-4336-8e34-aa4f8dc821fc",
+      "name": "Set Page"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bling.com.br/Api/v3/produtos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pagina",
+              "value": "={{ $json.pagina }}"
+            },
+            {
+              "name": "limite",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "data",
+              "value": "={{ $today.minus({ days: 1 }).toFormat('yyyy-MM-dd') }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Read Access Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        200
+      ],
+      "id": "12ceaf13-2101-4103-95ec-b4446d81882c",
+      "name": "Bling - List Products",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7fbf3216-4ecc-422f-9a02-470dd1849ca7",
+              "leftValue": "={{ $json.data ? $json.data.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "8fbf3216-4ecc-422f-9a02-470dd1849ca8",
+              "leftValue": "={{ $('Set Page').item.json.pagina }}",
+              "rightValue": "={{ $('Set Page').item.json.maxPages }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        200
+      ],
+      "id": "14b378d2-bc05-4b1d-8036-3435ea0813aa",
+      "name": "Has Products?"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        80
+      ],
+      "id": "30ff9091-f74a-4d9b-beb3-581f3169a71c",
+      "name": "Split Products"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.bling.com.br/Api/v3/produtos/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Read Access Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 400
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1344,
+        80
+      ],
+      "id": "2d97d3ac-39d0-48fd-9326-404cd718def3",
+      "name": "Bling - Get Product",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        80
+      ],
+      "id": "f308bba6-14c7-44c7-906b-f71ee9d1e760",
+      "name": "Throttle Sheets Write",
+      "webhookId": "52e16166-d698-4535-934d-5eaa8577903a"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_MAIN_REPORT_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Stock",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.data.id }}",
+            "Codigo": "={{ $json.data.codigo }}",
+            "GTIN": "={{ $json.data.gtin }}",
+            "Descricao": "={{ $json.data.nome }}",
+            "unidade": "={{ $json.data.unidade }}",
+            "itensPorCaixa": "={{ $json.data.itensPorCaixa }}",
+            "Quantidade": "={{ $json.data.estoque.saldoVirtualTotal }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Codigo",
+              "displayName": "Codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "GTIN",
+              "displayName": "GTIN",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Descricao",
+              "displayName": "Descricao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unidade",
+              "displayName": "unidade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itensPorCaixa",
+              "displayName": "itensPorCaixa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantidade",
+              "displayName": "Quantidade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        80
+      ],
+      "id": "8c54f1d6-7a62-414f-9bd6-a764a833f8c8",
+      "name": "Append Stock Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        80
+      ],
+      "id": "4df3b3ef-a62f-4c9e-93b6-68f52c9ae177",
+      "name": "Throttle Next Page",
+      "webhookId": "593bc3f5-440d-4f8d-a790-da33bdb277e7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "334d0169-eb70-45a2-b177-e78141d011c3",
+              "name": "pagina",
+              "type": "number",
+              "value": "={{ $('Set Page').first().json.pagina + 1 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2240,
+        80
+      ],
+      "id": "9ae051a4-37b6-459e-a255-260ddef3379f",
+      "name": "Next Page",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "you@example.com",
+        "subject": "Stock sync finished",
+        "emailType": "text",
+        "message": "Stock workflow finished successfully.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        320
+      ],
+      "id": "41b3acba-c151-475f-a899-ca900c628834",
+      "name": "Notify Stock Done",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      },
+      "webhookId": "a70a83bc-aaa7-4adc-a95f-a4b19e2c2d27"
+    },
+    {
+      "parameters": {
+        "content": "## Stock snapshot\n**Runs:** Monday 04:00, after Store A sales (same Bling account, same rate limit)\n\nPages through every product in Bling (100 per page), fetches each product's details and appends `saldoVirtualTotal`, unit and `itensPorCaixa` to the `Stock` tab.\n\nWhen a page comes back empty the IF takes the **false** branch, which sends a completion e-mail and ends the run.\n\n**Test mode:** lower `maxPages` in `Set Page` to process only the first N pages.",
+        "height": 300,
+        "width": 640,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -260
+      ],
+      "id": "1e276b53-12e2-42a7-88cd-2ebe91d7e2ed",
+      "name": "About"
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Portfolio copy - credentials not connected\nThis is a sanitized export of a workflow running in production.\nCredentials, spreadsheet IDs and e-mail addresses were intentionally removed\nor replaced with placeholders, so credential warnings on nodes are expected.\nSee the README for setup instructions.",
+        "height": 160,
+        "width": 620,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -460
+      ],
+      "id": "84188fd6-a690-4780-a94c-998863d83b74",
+      "name": "Portfolio Notice"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Stock Sync Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Access Token": {
+      "main": [
+        [
+          {
+            "node": "Set Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Page": {
+      "main": [
+        [
+          {
+            "node": "Bling - List Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bling - List Products": {
+      "main": [
+        [
+          {
+            "node": "Has Products?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Products?": {
+      "main": [
+        [
+          {
+            "node": "Split Products",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Stock Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Products": {
+      "main": [
+        [
+          {
+            "node": "Bling - Get Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bling - Get Product": {
+      "main": [
+        [
+          {
+            "node": "Throttle Sheets Write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle Sheets Write": {
+      "main": [
+        [
+          {
+            "node": "Append Stock Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Stock Rows": {
+      "main": [
+        [
+          {
+            "node": "Throttle Next Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle Next Page": {
+      "main": [
+        [
+          {
+            "node": "Next Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Page": {
+      "main": [
+        [
+          {
+            "node": "Set Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

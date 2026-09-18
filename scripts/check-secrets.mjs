@@ -19,7 +19,8 @@ const RULES = [
   ['Session cookie', /PHPSESSID=|sessionid=/i],
   ['Google Sheets URL', /docs\.google\.com\/spreadsheets\/d\/(?!YOUR_)/],
   ['Google Drive file ID', /["'/]1[A-Za-z0-9_-]{40,44}["'/]/],
-  ['E-mail address', /[A-Za-z0-9._%+-]+@(?!example\.com\b)[A-Za-z0-9.-]+\.[A-Za-z]{2,}/],
+  // example.com / .org / .net, including subdomains, are the documentation domains.
+  ['E-mail address', /[A-Za-z0-9._%+-]+@(?![A-Za-z0-9.-]*\bexample\.(com|org|net)\b)[A-Za-z0-9.-]+\.[A-Za-z]{2,}/],
   ['Private key', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
   ['API key-like value', /(api[_-]?key|client[_-]?secret|access[_-]?token)"?\s*[:=]\s*"(?![={])[A-Za-z0-9._-]{16,}"/i],
 ];

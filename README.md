@@ -1,9 +1,10 @@
 # Sales × Stock Replenishment Report — n8n + Bling ERP
 
-An n8n automation, **running in production** for a multi-store retail client, that pulls three months of
-sales from three separate Bling ERP accounts plus the current stock snapshot, normalises every
-commercial code (boxes, sets, kits, decorated variants) back to its **base unit**, and e-mails a
-consolidated CSV that the purchasing team uses to decide what to reorder.
+An n8n automation, **running in production** for a retail group made of **three companies**, each with
+its own Bling ERP account, **sharing a single stock** held by one of them. Every week it pulls three
+months of sales from all three companies plus the current stock, normalises every commercial code
+(boxes, sets, kits, decorated variants) back to its **base unit**, crosses the combined sales against
+the central stock, and e-mails a consolidated CSV that the purchasing team uses to decide what to reorder.
 
 **Stack:** n8n · Bling ERP REST API v3 (OAuth2) · Google Sheets · Gmail · JavaScript (Code nodes) · Node.js test runner · GitHub Actions
 **Role:** freelance project, designed, built and maintained end to end, from requirements with the client to production.
@@ -27,13 +28,21 @@ The client sells the same physical product under many codes:
 | `CP350-CX24` | a **box** of 24 glasses |
 | `KIT-BAR` | a **kit** containing 4 glasses + 2 wine glasses |
 
-Each store runs its own Bling account, so sales are spread across three APIs, and the ERP
-reports every code separately. Answering *"how many glasses did we sell in the last 3 months
-and how many do we have?"* used to be a manual spreadsheet exercise.
+On top of that, the group operates as **three separate companies**, each with its own Bling account:
+
+- **Sales are split** across three accounts and three APIs.
+- **Stock is centralised** in one of them (Company A), which supplies all three.
+- **Each ERP reports every code separately**, and only for its own company.
+
+Answering *"across the whole group, how many glasses did we sell in the last 3 months, and how
+many do we have in stock?"* used to be a manual exercise of exporting and merging spreadsheets.
+
+> In the workflows the three companies are labelled **Store A / B / C**. Store A is the company that holds the stock.
 
 ## What the automation delivers
 
-One row per **component** with sales broken down by how it was sold, all converted to units:
+One row per **component**, with the three companies' sales summed and broken down by how each item
+was sold, all converted to units and shown next to the central stock:
 
 ```text
 Cod Componente | Descricao             | Qcx | Cx | Jg  | Dec | Un | Comp | On  | Total | Media M | Qtd Estoque Jg | Qtd Estoque CX_UN | Total Estoque | Encontrado na Base
@@ -49,10 +58,10 @@ explained in [Unit conversion rules](#unit-conversion-rules-04).
 
 ```mermaid
 flowchart LR
-    subgraph Bling ERP
-        A[(Store A)]
-        B[(Store B)]
-        C[(Store C)]
+    subgraph Bling ERP - one account per company
+        A[(Store A<br/>sales + central stock)]
+        B[(Store B<br/>sales)]
+        C[(Store C<br/>sales)]
     end
 
     subgraph n8n
@@ -78,7 +87,7 @@ flowchart LR
     A --> W02a --> S
     B --> W02b --> S
     C --> W02c --> S
-    A --> W03 --> ST
+    A -->|central stock| W03 --> ST
     T <--> W02a & W02b & W02c & W03
     W00 --> BASE
     S & ST & BASE --> W04 --> R --> W05 -->|CSV attachment| M[📧 Purchasing team]
@@ -89,8 +98,8 @@ flowchart LR
 | Monday | Workflow | Why this slot |
 |---|---|---|
 | 01:00 | `01` Clear sheets | Start from empty tabs |
-| 02:00 | `02a` / `02b` / `02c` Sales sync | The three stores run in parallel on separate Bling accounts |
-| 04:00 | `03` Stock snapshot | Uses the Store A account, so it waits for Store A sales to finish instead of competing for the same rate limit |
+| 02:00 | `02a` / `02b` / `02c` Sales sync | The three companies run in parallel, each on its own Bling account |
+| 04:00 | `03` Stock snapshot | The stock lives in the Store A account, so it waits for Store A sales to finish instead of competing for the same rate limit |
 | 07:00 | `04` Consolidate | Hours of slack after the syncs |
 | 08:00 | `05` Send report | The report is in the purchasing team's inbox at the start of the week |
 | every 4 h | Token refresh (inside each `02`) | Bling access tokens expire after 6 h |
@@ -103,8 +112,8 @@ flowchart LR
 | [`00-build-product-base.json`](workflows/00-build-product-base.json) | *Manual.* Joins the supplier product sheet with the kit composition sheet into a relational **Base**: every commercial code → component + multiplier. |
 | [`01-clear-sheets.json`](workflows/01-clear-sheets.json) | Resets the working tabs (keeps headers) so each cycle starts clean. |
 | [`02a`](workflows/02a-sales-sync-store-a.json) / [`02b`](workflows/02b-sales-sync-store-b.json) / [`02c`](workflows/02c-sales-sync-store-c.json) `-sales-sync-store-*.json` | Paginates Bling `pedidos/vendas` (completed orders, last 3 months), fetches each order, explodes it into one row per item and **prorates freight, discount and other expenses** by each item's share of the order. Also keeps the store's OAuth token fresh. |
-| [`03-stock-snapshot.json`](workflows/03-stock-snapshot.json) | Paginates Bling `produtos` and records the virtual stock balance, unit and items-per-box of every product. |
-| [`04-consolidate-report.json`](workflows/04-consolidate-report.json) | The core: resolves every sold and stocked code against the Base and converts it to units (see below). |
+| [`03-stock-snapshot.json`](workflows/03-stock-snapshot.json) | Paginates Bling `produtos` in the **Store A account, where the group's stock is held**, and records the virtual stock balance, unit and items-per-box of every product. |
+| [`04-consolidate-report.json`](workflows/04-consolidate-report.json) | The core: merges the three companies' sales with the central stock, resolves every code against the Base and converts it to units (see below). |
 | [`05-send-report.json`](workflows/05-send-report.json) | Builds an Excel-friendly CSV (`;`, UTF-8 BOM, all values quoted) named after the 3-month window and e-mails it. |
 
 ### Screenshots
